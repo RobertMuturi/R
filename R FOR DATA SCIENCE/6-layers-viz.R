@@ -1,6 +1,6 @@
 #LAYERS
 library(tidyverse)
-
+library(gridExtra)
 
 # AESTHETIC MAPPING -------------------------------------------------------
 mpg
@@ -255,3 +255,148 @@ ggplot(diamonds) +
     fun.max = max,
     fun = median
   )
+
+
+# POSITION ADJUSTEMENTS ---------------------------------------------------
+
+#You can color bar charts using color aesthetics or fill aestehtics
+ggplot(mpg, aes(x = drv, color = drv)) +
+  geom_bar()
+
+ggplot(mpg, aes(x = drv, fill = drv)) +
+  geom_bar()
+
+#fill with another variable i.e class
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar()
+
+#the stacking is auto. however there alt options
+#identity, dodge, fill
+
+#position = identity will place each object where it falls in context to the graph
+# its not very useful for bars cause it overlaps them and have to use transparency or 
+# completly transparent. More useful with 2d geoms like points
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar(alpha = 1/5, position = "identity")
+
+ggplot(mpg, aes(x = drv, color = class)) +
+  geom_bar(fill = NA, position = "identity")
+
+
+#position = fill makes set of stacks the same height hence easy to compare
+#position = dodge places objects beside each other
+
+ggplot(mpg, aes(x = drv, fill = class)) +
+  geom_bar(position = "fill")
+
+ggplot(mpg, aes(x = drv, fill = class)) + 
+  geom_bar(position = "dodge")
+
+#other arguments applied to points as overlaping points are grouped
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(position = "jitter")
+
+
+
+# EXERCISE 4 --------------------------------------------------------------
+
+
+ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_jitter()
+
+#diffrence
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point()
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(position = "identity")
+
+# Compare and contrast geom_jitter() with geom_count().
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+  geom_jitter()
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+  geom_count()
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy, color = class)) +
+  geom_jitter()
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy, color = class)) +
+  geom_count()
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy, color = class)) +
+  geom_count(position = "jitter")
+
+ggplot(data = mpg, aes(x = drv, y = hwy, colour = class)) +
+  geom_boxplot()
+
+ggplot(data = mpg, aes(x = drv, y = hwy, colour = class)) +
+  geom_boxplot(position = "identity")
+
+#plot side by side
+p1 <- ggplot(data = mpg, aes(x = drv, y = hwy, colour = class)) +
+  geom_boxplot()
+p2 <- ggplot(data = mpg, aes(x = drv, y = hwy, colour = class)) +
+  geom_boxplot(position = "identity")
+
+grid.arrange(p1, p2, ncol = 2)
+
+
+# COORDINATE SYSTEMS ------------------------------------------------------
+
+# the default coordinate system is the Cartesian coordinate system
+# There are two other coordinate systems that are occasionally helpful.
+# 
+# coord_quickmap() sets the aspect ratio correctly for geographic maps. 
+# This is very important if you’re plotting spatial data with ggplot2
+
+nz <- map_data("nz")
+
+ggplot(nz, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "white", color = "black")
+
+ggplot(nz, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "white", color = "black") +
+  coord_quickmap()
+
+# coord_polar() uses polar coordinates. Polar coordinates reveal an interesting 
+# connection between a bar chart and a Coxcomb chart.
+
+bar <- ggplot(data = diamonds) +
+  geom_bar(
+    mapping = aes(x = clarity, fill = clarity),
+    show.legend = FALSE,
+    width = 1
+  ) +
+  theme(aspect.ratio = 1)
+
+bar + coord_flip()
+bar + coord_polar()
+
+
+# EXERCISE 5 --------------------------------------------------------------
+
+# Turn a stacked bar chart into a pie chart using coord_polar().
+ggplot(mpg, aes(x = factor(1), fill = drv)) +
+  geom_bar()
+
+ggplot(mpg, aes(x = factor(1), fill = drv)) +
+  geom_bar(width = 1) +
+  coord_polar(theta = "y")
+
+# The argument theta = "y" maps y to the angle of each section. If coord_polar() 
+# is specified without theta = "y", then the resulting plot is called a bulls-eye chart.
+
+ggplot(mpg, aes(x = factor(1), fill = drv)) +
+  geom_bar(width = 1) +
+  coord_polar()
+
+#what does this explain
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+  geom_point() + 
+  geom_abline() +
+  coord_fixed()
+
+# The function coord_fixed() ensures that the line produced by geom_abline() is 
+# at a 45-degree angle. A 45-degree line makes it easy to compare the highway 
+# and city mileage to the case in which city and highway MPG were equal
+# If we didn’t include coord_fixed(), then the line would no longer have an angle of 45 degrees.
