@@ -188,27 +188,305 @@ ggplot(mpg, aes(displ, hwy)) +
   ) +
   facet_wrap(~class)
 
-# To draw labels in different plots, simply have the facetting variable(s):
+# To draw labels in different plots, simply have the faceting variable(s):
+
+label <- tibble(
+  displ = Inf,
+  hwy = Inf,
+  class = unique(mpg$class),
+  label = str_c("Label for", class)
+)
+
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_text(aes(label = label),
+            data = label, vjust = "top", hjust = "right",
+            size = 3
+            ) +
+  facet_wrap(~class)
 
 
+# SCALES ------------------------------------------------------------------
+
+#Scales control how aesthetic mapping manifest visually
+
+#1. Axis ticks and legend keys
+#There are two primary arguments that affect the appearance of the ticks on the axes and the keys on the legend: breaks and labels.
+# Breaks controls the position of the ticks, or the values associated with the keys. Labels controls the text label associated with each tick/key.Breaks controls the position of the ticks, or the values associated with the keys. 
+# Labels controls the text label associated with each tick/key.
+
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  scale_y_continuous(breaks = seq(15, 40, by = 5))
 
 
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  scale_x_continuous(labels = NULL) + # no x labels
+  scale_y_continuous(labels = NULL) + #no y labels
+  scale_color_discrete(labels = c("4" = "4-wheel", "f" = "front", "r" = "rear")) #change legend labels
 
 
+ggplot(diamonds, aes(x = price, y = cut)) +
+  geom_boxplot(alpha = 0.05) +
+  scale_x_continuous(labels = label_dollar()) #add $ labels and format prices
 
-
-
-
+ggplot(diamonds, aes(x = price, y = cut)) +
+  geom_boxplot(alpha = 0.05) +
+  scale_x_continuous(
+    labels = label_dollar(scale = 1/1000, suffix = "K"), #remove zeros and add k
+    breaks = seq(1000, 19000, by = 6000)
+  )
   
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(name = "Percentage", labels = label_percent()) #add percentage at values
+
+#using breaks when you have very few data points
+presidential |> 
+  mutate(id = 33 + row_number()) |> 
+  ggplot(aes(x = start, y = id)) +
+  geom_point() +
+  geom_segment(aes(xend = end, yend = id)) +
+  scale_x_date(name = NULL, breaks = presidential$start, date_labels = "%y")
+
+
+#2. Legend Layout
+#to control position of the legend, we use theme
+
+base <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class))
+
+base + theme(legend.position = "right") #the default
+base + theme(legend.position = "left")
+base + 
+  theme(legend.position = "top") +
+  guides(color = guide_legend(nrow = 3))
+base + 
+  theme(legend.position = "bottom") +
+  guides(color = guide_legend(nrow = 3))
+
+#You can also use legend.position = "none" to suppress the display of the legend
+
+#controlling display of individual legends
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
+  theme(legend.position = "bottom") +
+  guides(color = guide_legend(nrow = 2, override.aes = list(size = 4))) #control number of rows(nrow), override aes to make points bigger
+
+#3. Replacing the scale
+
+#rather than use default scale which can be hard to interpret, we log transform and axes are labelled on original data scale
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_bin2d() +
+  scale_x_log10() +
+  scale_y_log10()
+
+#customised color scale
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  scale_color_brewer(palette = "Set1") #tuned for color blindness
+
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv, shape = drv)) + #shape mapping 
+  scale_color_brewer(palette = "Set1") 
+
+#predefined mapping
+presidential |>
+  mutate(id = 33 + row_number()) |>
+  ggplot(aes(x = start, y = id, color = party)) +
+  geom_point() +
+  geom_segment(aes(xend = end, yend = id)) +
+  scale_color_manual(values = c(Republican = "#E81B23", Democratic = "#00AEF3")) #add party colors
+
+#custom 
+presidential |>
+  mutate(id = 33 + row_number()) |>
+  ggplot(aes(x = start, y = id, color = party)) +
+  geom_point() +
+  geom_segment(aes(xend = end, yend = id)) +
+  geom_label_repel(
+    data = presidential |> mutate(id = 33 + row_number()),
+    aes(x = start, y = id, label = name, color = party),
+    size = 4, nudge_x = 1, nudge_y = 0.1
+  ) +
+  scale_x_date(name = "Term Served", breaks = presidential$start, date_labels = "%y") +
+  scale_color_manual(values = c(Republican = "#E81B23", Democratic = "#00AEF3")) #add party colors
+
+
+# For continuous color, you can use the built-in scale_color_gradient() or scale_fill_gradient(). 
+# If you have a diverging scale, you can use scale_color_gradient2(). 
+
+df <- tibble(
+  x = rnorm(10000),
+  y = rnorm(10000)
+)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  labs(title = "Default, continuous", x = NULL, y = NULL)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  scale_fill_viridis_c() +
+  labs(title = "Viridis, continuous", x = NULL, y = NULL)
+
+ggplot(df, aes(x, y)) +
+  geom_hex() +
+  coord_fixed() +
+  scale_fill_viridis_b() +
+  labs(title = "Viridis, binned", x = NULL, y = NULL)
+
+#4. Zooming
+
+# There are three ways to control the plot limits:
+# Adjusting what data are plotted.
+# Setting the limits in each scale.
+# Setting xlim and ylim in coord_cartesian().
+
+# relationship between engine size and fuel efficiency
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth()
+
+#subsetting the data
+mpg |> 
+  filter(displ >= 5 & displ <= 6 & hwy >= 10 & hwy <= 25) |> 
+  ggplot(aes(x = displ, y = hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth()
+
+#when zooming in to a region, best to use coord_cartesian()
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(color = drv)) +
+  geom_smooth() +
+  coord_cartesian(xlim = c(5, 6), ylim = c(10, 25))
+
+#we can create scales which can be used accross multiple plots and make them easy to compare
+suv <- mpg |> filter(class == "suv")
+compact <- mpg |> filter(class == "compact")
+
+x_scale <- scale_x_continuous(limits = range(mpg$displ))
+y_scale <- scale_y_continuous(limits = range(mpg$hwy))
+col_scale <- scale_color_discrete(limits = unique(mpg$drv))
+
+ggplot(suv, aes(displ, hwy, color = drv)) +
+  geom_point() +
+  x_scale +
+  y_scale +
+  col_scale
+
+ggplot(compact, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  x_scale +
+  y_scale +
+  col_scale
+
+#Exercise
+# modify the code using override.aes to make the legend easier to see.
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(aes(color = cut), alpha = 1/20) +
+  guides(color = guide_legend(override.aes = list(size = 5)))
 
 
 
+# THEMES ------------------------------------------------------------------
+
+# you can customize the non-data elements of your plot with a theme:
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(color = class)) +
+  geom_smooth(se = FALSE) +
+  theme_bw()
+
+ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+  geom_point() +
+  labs(
+    title = "Larger engine sizes tend to have lower fuel economy",
+    caption = "Source: https://fueleconomy.gov."
+  ) +
+  theme(
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal",
+    legend.box.background = element_rect(color = "black"),
+    plot.title = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+    plot.caption = element_text(hjust = 0),
+    axis.title.x = element_text(face = "bold", color = "blue"),
+    axis.title.y = element_text(face = "bold", color = "blue"),
+  ) +
+  theme_dark()
+
+# plot these are set to "plot" to indicate these elements are aligned to the entire plot area, instead of the plot panel (the default)
 
 
+# LAYOUT ------------------------------------------------------------------
+
+#Combine separate plots in one graphic
 
 
+p1 <- ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 1")
+p2 <- ggplot(mpg, aes(x = drv, y = hwy)) + 
+  geom_boxplot() + 
+  labs(title = "Plot 2")
+p1 + p2
 
+# You can also create complex plot layouts with patchwork. | places the p1 and p3 next to each other and / moves p2 to the next line.
+p3 <- ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 3")
+(p1 | p3) / p2
 
+#collect legend from multiple plots into common one and add common title
+p1 <- ggplot(mpg, aes(x = drv, y = cty, color = drv)) + 
+  geom_boxplot(show.legend = FALSE) + #turned off the legends on the box plots
+  labs(title = "Plot 1")
+
+p2 <- ggplot(mpg, aes(x = drv, y = hwy, color = drv)) + 
+  geom_boxplot(show.legend = FALSE) + #turned off the legends on the box plots
+  labs(title = "Plot 2")
+
+p3 <- ggplot(mpg, aes(x = cty, color = drv, fill = drv)) + 
+  geom_density(alpha = 0.5) +  #collected the legends for the density plots
+  labs(title = "Plot 3")
+
+p4 <- ggplot(mpg, aes(x = hwy, color = drv, fill = drv)) + 
+  geom_density(alpha = 0.5) + #collected the legends for the density plots
+  labs(title = "Plot 4")
+
+p5 <- ggplot(mpg, aes(x = cty, y = hwy, color = drv)) + 
+  geom_point(show.legend = FALSE) + #turned off the legends on the box plots
+  facet_wrap(~drv) +
+  labs(title = "Plot 5")
+
+(guide_area() / (p1 + p2) / (p3 + p4) / p5) +
+  plot_annotation(
+    title = "City and highway mileage for cars with different drive trains",
+    caption = "Source: https://fueleconomy.gov."
+  ) +
+  plot_layout(
+    guides = "collect",
+    heights = c(1, 3, 2, 4) #the guide has a height of 1, the box plots 3, density plots 2, nd the faceted scatterplot 4
+  ) &
+  theme(legend.position = "top") #The legend is placed on top,
+
+#Exercise
+p1 <- ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 1")
+p2 <- ggplot(mpg, aes(x = drv, y = hwy)) + 
+  geom_boxplot() + 
+  labs(title = "Plot 2")
+p3 <- ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point() + 
+  labs(title = "Plot 3")
+
+p1 / (p2 | p3)
 
 
 
