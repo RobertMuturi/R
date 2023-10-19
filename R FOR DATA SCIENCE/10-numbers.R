@@ -167,16 +167,23 @@ round(x / 0.25) * 0.25
 
 
 # Cutting numbers into ranges
+# Use cut()1 to break up (aka bin) a numeric vector into discrete buckets:
+x <- c(1, 2, 5, 10, 15, 20)
 
+cut(x, breaks = c(0, 5, 10, 15, 20))
 
+# The breaks don’t need to be evenly spaced:
+cut(x, breaks = c(0, 5, 10, 100))
 
+# The breaks don’t need to be evenly spaced:
+cut(x, 
+    breaks = c(0, 5, 10, 15, 20), 
+    labels = c("sm", "md", "lg", "xl")
+)
 
-
-
-
-
-
-
+# Any values outside of the range of the breaks will become NA:
+y <- c(NA, -10, 5, 10, 30)
+cut(y, breaks = c(0, 5, 10, 15, 20))
 
 
 
