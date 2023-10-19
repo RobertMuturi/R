@@ -2,7 +2,7 @@ library(tidyverse)
 library(nycflights13)
 
 
-# COMPARISONS -------------------------------------------------------------
+ # COMPARISONS -------------------------------------------------------------
 
 #common way to create a logical vector is via a numeric comparison with <, <=, >, >=, !=, and ==
 
@@ -180,3 +180,114 @@ flights |>
     .groups = "drop"
   )
 
+# but what if we wanted to also compute the average delay for flights that arrived early?
+# you could use [ to perform an inline filtering: arr_delay[arr_delay > 0] will yield only the positive arrival delays.
+
+
+flights |> 
+  group_by(year, month, day) |> 
+  summarise(
+    behind = mean(arr_delay[arr_delay > 0], na.rm = TRUE),
+    ahead = mean(arr_delay[arr_delay < 0], na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+
+# CONDITIONAL FORMATTING --------------------------------------------------
+
+# One powerful feature of logical vectors are their use for conditional transformations, i.e. 
+# doing one thing for condition x, and something different for condition y. 
+# There are two important tools for this: if_else() and case_when().
+
+#1 if_else
+
+x <- c(-3:3, NA)
+if_else(x > 0, "+ve", "-ve")
+
+# There’s an optional fourth argument, missing which will be used if the input is NA:
+if_else(x > 0, "+ve", "-ve", "???")
+
+# You can also use vectors for the the true and false arguments
+if_else(x < 0, -x, x)
+
+# you can of course mix and match. For example, you could implement a simple version of coalesce() like this:
+x1 <- c(NA, 1, 2, NA)
+y1 <- c(3, NA, 4, 6)
+
+if_else(is.na(x1), y1, x1)
+
+#zero is neither positive nor negative
+if_else(x == 0, "0", if_else(x < 0, "-ve", "+ve"), "???")
+
+
+#case when
+# case_when() is inspired by SQL’s CASE statement and provides a flexible way of performing different 
+# computations for different conditions
+
+x <- c(-3:3, NA)
+
+case_when(
+  x == 0 ~ "0",
+  x < 0 ~ "-ve",
+  x > 0 ~ "+ve",
+  is.na(x) ~ "???"
+)
+
+#Use .default if you want to create a “default”/catch all value:
+case_when(
+  x < 0 ~ "-ve",
+  x > 0 ~ "+ve",
+  .default = "???"
+)
+
+# note that if multiple conditions match, only the first will be used:
+case_when(
+  x > 0 ~ "+ve",
+  x > 2 ~ "big"
+)
+
+flights |> 
+  mutate(
+    status = case_when(
+      is.na(arr_delay) ~ "cancelled",
+      arr_delay < -30 ~ "very early",
+      arr_delay > -15 ~ "early",
+      abs(arr_delay) <= 15 ~ "on time",
+      arr_delay < 60 ~ "late",
+      arr_delay < Inf ~ "very late",
+    ),
+    .keep = "used"
+  )
+
+
+#3 compatible types
+# Note that both if_else() and case_when() require compatible types in the output. 
+# If they’re not compatible, you’ll see errors
+
+
+#exercise
+#divisible by two
+x <- c(0:20)
+if_else(x %% 2 == 0, "even", "odd")
+
+#label weekend or weekday
+x <- c("Monday", "Saturday", "Wednesday")
+if_else(x =="Saturday", "weekend", "weekday")
+
+
+# Use ifelse() to compute the absolute value of a numeric vector called x.
+ifelse(x >= 0, x, -x)
+
+# Write a case_when() statement that uses the month and day columns from flights to label a selection of important US holidays 
+flights |> 
+  group_by(year, month, day) |> 
+  mutate(
+    holidays = case_when(
+      month == 1 & day == 1 ~ "new years",
+      month == 7 & day == 4 ~ "4th of July",
+      month == 12 & day == 25 ~ "Christmas",
+      month == 11 & day == 30 ~ "Thanksgiving",
+    ),
+    .keep = "used"
+  )
