@@ -186,4 +186,10 @@ y <- c(NA, -10, 5, 10, 30)
 cut(y, breaks = c(0, 5, 10, 15, 20))
 
 
+# Cumulative and rolling aggregates
+# Base R provides cumsum(), cumprod(), cummin(), cummax() for running, 
+# or cumulative, sums, products, mins and maxes. dplyr provides cummean() 
+# for cumulative means.
 
+x <- 1:10
+cumsum(x)
